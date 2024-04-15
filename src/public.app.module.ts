@@ -19,15 +19,11 @@ import { GraphQlModule } from './graphql/graphql.module';
     DynamicModuleUtils.getRedisCacheModule(),
     GraphQlModule.register(),
   ],
-  controllers: [
-    LocalCacheController,
-  ],
+  controllers: [LocalCacheController],
   providers: [
     DynamicModuleUtils.getNestJsApiConfigService(),
     GuestCacheService,
   ],
-  exports: [
-    EndpointsServicesModule,
-  ],
+  exports: [EndpointsServicesModule],
 })
-export class PublicAppModule { }
+export class PublicAppModule {}

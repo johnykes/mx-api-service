@@ -2,11 +2,11 @@ network: 'mainnet'
 metaChainShardId: 4294967295
 api:
   public: true
-  private: true
+  private: false
 cron:
-  cacheWarmer: true
+  cacheWarmer: false
   fastWarm: false
-  queueWorker: true
+  queueWorker: false
   elasticUpdater: false
 flags:
   useRequestCaching: true
@@ -14,14 +14,14 @@ flags:
   useTracing: false
   useRequestLogging: false
   useVmQueryTracing: false
-  processNfts: true
+  processNfts: false
   indexer-v3: false
   collectionPropertiesFromGateway: false
 features:
   eventsNotifier:
     enabled: false
     port: 5674
-    url: 'amqp://guest:guest@127.0.0.1:5672'
+    url: '' #'amqp://guest:guest@127.0.0.1:5672'
     exchange: 'all_events'
     queue: 'api-process-logs-and-events'
   guestCaching:
@@ -33,7 +33,7 @@ features:
   transactionPoolWarmer:
     enabled: true
     cronExpression: '*/5 * * * * *'
-    ttlInSeconds: 60 
+    ttlInSeconds: 60
   updateCollectionExtraDetails:
     enabled: false
   marketplace:
@@ -93,10 +93,11 @@ urls:
   elastic:
     - 'https://index.multiversx.com'
   gateway:
-    - 'https://gateway.multiversx.com'
+    - 'http://18.197.68.22:8079'
+    # - 'https://gateway.multiversx.com'
   verifier: 'https://play-api.multiversx.com'
   redis: '127.0.0.1'
-  rabbitmq: 'amqp://127.0.0.1:5672'
+  rabbitmq: '' #'amqp://127.0.0.1:5672'
   providers: 'https://delegation-api.multiversx.com/providers'
   delegation: 'https://delegation-api.multiversx.com'
   media: 'https://media.elrond.com'
@@ -110,7 +111,7 @@ indexer:
   maxPagination: 10000
 database:
   enabled: false
-  url: 'mongodb://127.0.0.1:27017/api?authSource=admin'
+  url: '' #mongodb://127.0.0.1:27017/api?authSource=admin
   type: 'mysql'
   host: 'localhost'
   port: 3306
@@ -120,7 +121,7 @@ database:
 caching:
   cacheTtl: 6
   processTtl: 600
-  poolLimit: 50
+  poolLimit: 6
 keepAliveTimeout:
   downstream: 61000
   upstream: 60000
@@ -140,5 +141,5 @@ inflation:
   - 924690
   - 719203
 nftProcess:
-  parallelism: 1
-  maxRetries: 3
+  parallelism: 0
+  maxRetries: 0

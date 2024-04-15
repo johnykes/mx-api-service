@@ -3,7 +3,7 @@ import { RemoteCacheController } from './endpoints/caching/remote.cache.controll
 import { ApiMetricsController } from './common/metrics/api.metrics.controller';
 import { HealthCheckController } from './endpoints/health-check/health.check.controller';
 import { ProcessNftsPrivateController } from './endpoints/process-nfts/process.nfts.private.controller';
-import { ProcessNftsModule } from './endpoints/process-nfts/process.nfts.module';
+// import { ProcessNftsModule } from './endpoints/process-nfts/process.nfts.module';
 import { LoggingModule } from '@multiversx/sdk-nestjs-common';
 import { DynamicModuleUtils } from './utils/dynamic.module.utils';
 import { ApiMetricsModule } from './common/metrics/api.metrics.module';
@@ -11,7 +11,7 @@ import { ApiMetricsModule } from './common/metrics/api.metrics.module';
 @Module({
   imports: [
     LoggingModule,
-    ProcessNftsModule,
+    // ProcessNftsModule,
     ApiMetricsModule,
   ],
   providers: [
@@ -25,4 +25,4 @@ import { ApiMetricsModule } from './common/metrics/api.metrics.module';
     ProcessNftsPrivateController,
   ],
 })
-export class PrivateAppModule { }
+export class PrivateAppModule {}

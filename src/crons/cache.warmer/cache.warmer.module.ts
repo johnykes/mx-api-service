@@ -27,4 +27,4 @@ import { PluginModule } from 'src/plugins/plugin.module';
     CacheWarmerService,
   ],
 })
-export class CacheWarmerModule { }
+export class CacheWarmerModule {}

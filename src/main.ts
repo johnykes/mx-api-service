@@ -22,10 +22,29 @@ import { PluginService } from './common/plugins/plugin.service';
 import { TransactionCompletedModule } from './crons/transaction.processor/transaction.completed.module';
 import { SocketAdapter } from './common/websockets/socket-adapter';
 import { ApiConfigModule } from './common/api-config/api.config.module';
-import { CacheService, CachingInterceptor, GuestCacheInterceptor, GuestCacheService } from '@multiversx/sdk-nestjs-cache';
+import {
+  CacheService,
+  CachingInterceptor,
+  GuestCacheInterceptor,
+  GuestCacheService,
+} from '@multiversx/sdk-nestjs-cache';
 import { LoggerInitializer } from '@multiversx/sdk-nestjs-common';
-import { MetricsService, RequestCpuTimeInterceptor, LoggingInterceptor, LogRequestsInterceptor } from '@multiversx/sdk-nestjs-monitoring';
-import { FieldsInterceptor, ExtractInterceptor, CleanupInterceptor, PaginationInterceptor, QueryCheckInterceptor, ComplexityInterceptor, OriginInterceptor, ExcludeFieldsInterceptor } from '@multiversx/sdk-nestjs-http';
+import {
+  MetricsService,
+  RequestCpuTimeInterceptor,
+  LoggingInterceptor,
+  LogRequestsInterceptor,
+} from '@multiversx/sdk-nestjs-monitoring';
+import {
+  FieldsInterceptor,
+  ExtractInterceptor,
+  CleanupInterceptor,
+  PaginationInterceptor,
+  QueryCheckInterceptor,
+  ComplexityInterceptor,
+  OriginInterceptor,
+  ExcludeFieldsInterceptor,
+} from '@multiversx/sdk-nestjs-http';
 import { ErdnestConfigServiceImpl } from './common/api-config/erdnest.config.service.impl';
 import { RabbitMqModule } from './common/rabbitmq/rabbitmq.module';
 import { TransactionLoggingInterceptor } from './interceptors/transaction.logging.interceptor';
@@ -51,26 +70,31 @@ async function bootstrap() {
   }
 
   if (apiConfigService.getIsPublicApiActive()) {
-    const publicApp = await NestFactory.create<NestExpressApplication>(PublicAppModule);
+    const publicApp = await NestFactory.create<NestExpressApplication>(
+      PublicAppModule,
+    );
 
     await configurePublicApp(publicApp, apiConfigService);
 
-    await publicApp.listen(3001);
+    await publicApp.listen(80);
 
-    const websocketPublisherApp = await NestFactory.createMicroservice<MicroserviceOptions>(
-      WebSocketPublisherModule,
-      {
-        transport: Transport.REDIS,
-        options: {
-          host: apiConfigService.getRedisUrl(),
-          port: 6379,
-          retryAttempts: 100,
-          retryDelay: 1000,
-          retryStrategy: () => 1000,
+    const websocketPublisherApp =
+      await NestFactory.createMicroservice<MicroserviceOptions>(
+        WebSocketPublisherModule,
+        {
+          transport: Transport.REDIS,
+          options: {
+            host: apiConfigService.getRedisUrl(),
+            port: 6379,
+            retryAttempts: 100,
+            retryDelay: 1000,
+            retryStrategy: () => 1000,
+          },
         },
-      },
+      );
+    websocketPublisherApp.useWebSocketAdapter(
+      new SocketAdapter(websocketPublisherApp),
     );
-    websocketPublisherApp.useWebSocketAdapter(new SocketAdapter(websocketPublisherApp));
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     websocketPublisherApp.listen();
   }
@@ -96,7 +120,9 @@ async function bootstrap() {
   }
 
   if (apiConfigService.getIsTransactionBatchCronActive()) {
-    const processorApp = await NestFactory.create(BatchTransactionProcessorModule);
+    const processorApp = await NestFactory.create(
+      BatchTransactionProcessorModule,
+    );
     await processorApp.listen(7002);
   }
 
@@ -111,28 +137,36 @@ async function bootstrap() {
   }
 
   if (apiConfigService.getIsQueueWorkerCronActive()) {
-    const queueWorkerApp = await NestFactory.createMicroservice<MicroserviceOptions>(NftQueueModule, {
-      transport: Transport.RMQ,
-      options: {
-        urls: [apiConfigService.getRabbitmqUrl()],
-        queue: 'api-process-nfts',
-        noAck: false,
-        prefetchCount: apiConfigService.getNftProcessParallelism(),
-        queueOptions: {
-          durable: true,
-          // arguments: {
-          //   'x-single-active-consumer': true,
-          // },
-          deadLetterExchange: 'api-process-nfts-dlq',
+    const queueWorkerApp =
+      await NestFactory.createMicroservice<MicroserviceOptions>(
+        NftQueueModule,
+        {
+          transport: Transport.RMQ,
+          options: {
+            urls: [apiConfigService.getRabbitmqUrl()],
+            queue: 'api-process-nfts',
+            noAck: false,
+            prefetchCount: apiConfigService.getNftProcessParallelism(),
+            queueOptions: {
+              durable: true,
+              // arguments: {
+              //   'x-single-active-consumer': true,
+              // },
+              deadLetterExchange: 'api-process-nfts-dlq',
+            },
+          },
         },
-      },
-    });
+      );
     await queueWorkerApp.listen();
   }
 
   if (apiConfigService.isEventsNotifierFeatureActive()) {
-    const eventsNotifierApp = await NestFactory.create(RabbitMqModule.register());
-    await eventsNotifierApp.listen(apiConfigService.getEventsNotifierFeaturePort());
+    const eventsNotifierApp = await NestFactory.create(
+      RabbitMqModule.register(),
+    );
+    await eventsNotifierApp.listen(
+      apiConfigService.getEventsNotifierFeaturePort(),
+    );
   }
 
   const pubSubApp = await NestFactory.createMicroservice<MicroserviceOptions>(
@@ -155,28 +189,59 @@ async function bootstrap() {
 
   logger.log(`Public API active: ${apiConfigService.getIsPublicApiActive()}`);
   logger.log(`Private API active: ${apiConfigService.getIsPrivateApiActive()}`);
-  logger.log(`Transaction processor cron active: ${apiConfigService.getIsTransactionProcessorCronActive()}`);
-  logger.log(`Transaction completed cron active: ${apiConfigService.getIsTransactionCompletedCronActive()}`);
-  logger.log(`Transaction batch cron active: ${apiConfigService.getIsTransactionBatchCronActive()}`);
-  logger.log(`Cache warmer active: ${apiConfigService.getIsCacheWarmerCronActive()}`);
-  logger.log(`Queue worker active: ${apiConfigService.getIsQueueWorkerCronActive()}`);
-  logger.log(`Elastic updater active: ${apiConfigService.getIsElasticUpdaterCronActive()}`);
-  logger.log(`Events notifier feature active: ${apiConfigService.isEventsNotifierFeatureActive()}`);
-  logger.log(`Exchange feature active: ${apiConfigService.isExchangeEnabled()}`);
-  logger.log(`Marketplace feature active: ${apiConfigService.isMarketplaceFeatureEnabled()}`);
+  logger.log(
+    `Transaction processor cron active: ${apiConfigService.getIsTransactionProcessorCronActive()}`,
+  );
+  logger.log(
+    `Transaction completed cron active: ${apiConfigService.getIsTransactionCompletedCronActive()}`,
+  );
+  logger.log(
+    `Transaction batch cron active: ${apiConfigService.getIsTransactionBatchCronActive()}`,
+  );
+  logger.log(
+    `Cache warmer active: ${apiConfigService.getIsCacheWarmerCronActive()}`,
+  );
+  logger.log(
+    `Queue worker active: ${apiConfigService.getIsQueueWorkerCronActive()}`,
+  );
+  logger.log(
+    `Elastic updater active: ${apiConfigService.getIsElasticUpdaterCronActive()}`,
+  );
+  logger.log(
+    `Events notifier feature active: ${apiConfigService.isEventsNotifierFeatureActive()}`,
+  );
+  logger.log(
+    `Exchange feature active: ${apiConfigService.isExchangeEnabled()}`,
+  );
+  logger.log(
+    `Marketplace feature active: ${apiConfigService.isMarketplaceFeatureEnabled()}`,
+  );
   logger.log(`Auth active: ${apiConfigService.getIsAuthActive()}`);
 
   logger.log(`Use tracing: ${apiConfigService.getUseTracingFlag()}`);
-  logger.log(`Process NFTs flag: ${apiConfigService.getIsProcessNftsFlagActive()}`);
+  logger.log(
+    `Process NFTs flag: ${apiConfigService.getIsProcessNftsFlagActive()}`,
+  );
   logger.log(`Indexer v3 flag: ${apiConfigService.getIsIndexerV3FlagActive()}`);
   logger.log(`Staking v4 enabled: ${apiConfigService.isStakingV4Enabled()}`);
-  logger.log(`Events notifier enabled: ${apiConfigService.isEventsNotifierFeatureActive()}`);
-  logger.log(`Guest caching enabled: ${apiConfigService.isGuestCacheFeatureActive()}`);
-  logger.log(`Transaction pool enabled: ${apiConfigService.isTransactionPoolEnabled()}`);
-  logger.log(`Transaction pool cache warmer enabled: ${apiConfigService.isTransactionPoolCacheWarmerEnabled()}`);
+  logger.log(
+    `Events notifier enabled: ${apiConfigService.isEventsNotifierFeatureActive()}`,
+  );
+  logger.log(
+    `Guest caching enabled: ${apiConfigService.isGuestCacheFeatureActive()}`,
+  );
+  logger.log(
+    `Transaction pool enabled: ${apiConfigService.isTransactionPoolEnabled()}`,
+  );
+  logger.log(
+    `Transaction pool cache warmer enabled: ${apiConfigService.isTransactionPoolCacheWarmerEnabled()}`,
+  );
 }
 
-async function configurePublicApp(publicApp: NestExpressApplication, apiConfigService: ApiConfigService) {
+async function configurePublicApp(
+  publicApp: NestExpressApplication,
+  apiConfigService: ApiConfigService,
+) {
   publicApp.use(bodyParser.json({ limit: '1mb' }));
   publicApp.use(requestIp.mw());
   publicApp.enableCors();
@@ -188,13 +253,18 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
   const metricsService = publicApp.get<MetricsService>(MetricsService);
   const eventEmitterService = publicApp.get<EventEmitter2>(EventEmitter2);
   const pluginService = publicApp.get<PluginService>(PluginService);
-  const httpAdapterHostService = publicApp.get<HttpAdapterHost>(HttpAdapterHost);
+  const httpAdapterHostService =
+    publicApp.get<HttpAdapterHost>(HttpAdapterHost);
   const cachingService = publicApp.get<CacheService>(CacheService);
   const settingsService = publicApp.get<SettingsService>(SettingsService);
 
-
   if (apiConfigService.getIsAuthActive()) {
-    publicApp.useGlobalGuards(new JwtOrNativeAuthGuard(new ErdnestConfigServiceImpl(apiConfigService), cachingService));
+    publicApp.useGlobalGuards(
+      new JwtOrNativeAuthGuard(
+        new ErdnestConfigServiceImpl(apiConfigService),
+        cachingService,
+      ),
+    );
   }
 
   const httpServer = httpAdapterHostService.httpAdapter.getHttpServer();
@@ -206,11 +276,14 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
   globalInterceptors.push(new QueryCheckInterceptor(httpAdapterHostService));
 
   if (apiConfigService.isGuestCacheFeatureActive()) {
-    const guestCacheService = publicApp.get<GuestCacheService>(GuestCacheService);
+    const guestCacheService =
+      publicApp.get<GuestCacheService>(GuestCacheService);
     // @ts-ignore
-    globalInterceptors.push(new GuestCacheInterceptor(guestCacheService, {
-      ignoreAuthorizationHeader: true,
-    }));
+    globalInterceptors.push(
+      new GuestCacheInterceptor(guestCacheService, {
+        ignoreAuthorizationHeader: true,
+      }),
+    );
   }
 
   // @ts-ignore
@@ -224,7 +297,8 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
   // @ts-ignore
   globalInterceptors.push(new LoggingInterceptor(metricsService));
 
-  const getUseRequestCachingFlag = await settingsService.getUseRequestCachingFlag();
+  const getUseRequestCachingFlag =
+    await settingsService.getUseRequestCachingFlag();
   if (getUseRequestCachingFlag) {
     const cachingInterceptor = new CachingInterceptor(
       cachingService,
@@ -243,7 +317,8 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
   // @ts-ignore
   globalInterceptors.push(new FieldsInterceptor());
 
-  const getUseRequestLoggingFlag = await settingsService.getUseRequestLoggingFlag();
+  const getUseRequestLoggingFlag =
+    await settingsService.getUseRequestLoggingFlag();
   if (getUseRequestLoggingFlag) {
     // @ts-ignore
     globalInterceptors.push(new LogRequestsInterceptor(httpAdapterHostService));
@@ -254,7 +329,9 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
   // @ts-ignore
   globalInterceptors.push(new CleanupInterceptor());
   // @ts-ignore
-  globalInterceptors.push(new PaginationInterceptor(apiConfigService.getIndexerMaxPagination()));
+  globalInterceptors.push(
+    new PaginationInterceptor(apiConfigService.getIndexerMaxPagination()),
+  );
   // @ts-ignore
   globalInterceptors.push(new TransactionLoggingInterceptor());
 
@@ -270,7 +347,10 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
     .setTitle('Multiversx API')
     .setDescription(description)
     .setVersion('1.0.0')
-    .setExternalDoc('Find out more about Multiversx API', 'https://docs.multiversx.com/sdk-and-tools/rest-api/rest-api/');
+    .setExternalDoc(
+      'Find out more about Multiversx API',
+      'https://docs.multiversx.com/sdk-and-tools/rest-api/rest-api/',
+    );
 
   const config = documentBuilder.build();
   const options = {
@@ -281,7 +361,6 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
           }
           .swagger-ui .topbar { background-color: #FAFAFA; }
           .swagger-ui .scheme-container {background-color: #FAFAFA;}`,
-
 
     customfavIcon: '/img/mvx-ledger-icon-mint.png',
     swaggerOptions: {
@@ -295,9 +374,15 @@ async function configurePublicApp(publicApp: NestExpressApplication, apiConfigSe
   SwaggerModule.setup('', publicApp, document, options);
 
   const logger = new Logger('Public App initializer');
-  logger.log(`Use request caching: ${await settingsService.getUseRequestCachingFlag()}`);
-  logger.log(`Use request logging: ${await settingsService.getUseRequestLoggingFlag()}`);
-  logger.log(`Use vm query tracing: ${await settingsService.getUseVmQueryTracingFlag()}`);
+  logger.log(
+    `Use request caching: ${await settingsService.getUseRequestCachingFlag()}`,
+  );
+  logger.log(
+    `Use request logging: ${await settingsService.getUseRequestLoggingFlag()}`,
+  );
+  logger.log(
+    `Use vm query tracing: ${await settingsService.getUseVmQueryTracingFlag()}`,
+  );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
