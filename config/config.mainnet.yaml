@@ -90,10 +90,11 @@ aws:
   s3Region: ''
 urls:
   self: 'https://api.multiversx.com'
-  # elastic:
-  # - 'https://index.multiversx.com'
+  elastic:
+    - 'https://index.multiversx.com'
   gateway:
-    - 'https://gateway.multiversx.com'
+    - 'http://18.197.68.22:8079'
+    # - 'https://gateway.multiversx.com'
   verifier: 'https://play-api.multiversx.com'
   redis: '127.0.0.1'
   rabbitmq: '' #'amqp://127.0.0.1:5672'
