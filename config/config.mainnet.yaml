@@ -90,8 +90,8 @@ aws:
   s3Region: ''
 urls:
   self: 'https://api.multiversx.com'
-  elastic:
-    - 'https://index.multiversx.com'
+  # elastic:
+  # - 'https://index.multiversx.com'
   gateway:
     - 'https://gateway.multiversx.com'
   verifier: 'https://play-api.multiversx.com'

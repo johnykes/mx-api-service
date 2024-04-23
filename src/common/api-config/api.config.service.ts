@@ -141,8 +141,9 @@ export class ApiConfigService {
     if (!redisUrl) {
       throw new Error('No redis url present');
     }
-
-    return redisUrl;
+    const redis = process.env.redis ?? redisUrl;
+    // console.log('REDIS URL', redis);
+    return redis;
   }
   getRedisPort(): number {
     const redisPort = this.configService.get<number>('urls.redisPort');

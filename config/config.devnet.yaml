@@ -87,8 +87,8 @@ aws:
   s3Region: ''
 urls:
   self: 'https://devnet-api.multiversx.com'
-  elastic:
-    - 'https://devnet-index.multiversx.com'
+  # elastic:
+  #   - 'https://devnet-index.multiversx.com'
   gateway:
     - 'https://devnet-gateway.multiversx.com'
   verifier: 'https://play-api.multiversx.com'
