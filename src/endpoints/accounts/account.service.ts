@@ -9,20 +9,24 @@ import { AccountKey } from './entities/account.key';
 import { DeployedContract } from './entities/deployed.contract';
 import { TransactionService } from '../transactions/transaction.service';
 import { PluginService } from 'src/common/plugins/plugin.service';
-import { AccountEsdtHistory } from "./entities/account.esdt.history";
-import { AccountHistory } from "./entities/account.history";
+import { AccountEsdtHistory } from './entities/account.esdt.history';
+import { AccountHistory } from './entities/account.history';
 import { StakeService } from '../stake/stake.service';
 import { TransferService } from '../transfers/transfer.service';
 import { SmartContractResultService } from '../sc-results/scresult.service';
 import { TransactionType } from '../transactions/entities/transaction.type';
 import { AssetsService } from 'src/common/assets/assets.service';
 import { TransactionFilter } from '../transactions/entities/transaction.filter';
-import { CacheService } from "@multiversx/sdk-nestjs-cache";
-import { AddressUtils, BinaryUtils, OriginLogger } from '@multiversx/sdk-nestjs-common';
-import { ApiService, ApiUtils } from "@multiversx/sdk-nestjs-http";
+import { CacheService } from '@multiversx/sdk-nestjs-cache';
+import {
+  AddressUtils,
+  BinaryUtils,
+  OriginLogger,
+} from '@multiversx/sdk-nestjs-common';
+import { ApiService, ApiUtils } from '@multiversx/sdk-nestjs-http';
 import { GatewayService } from 'src/common/gateway/gateway.service';
-import { IndexerService } from "src/common/indexer/indexer.service";
-import { AccountOptionalFieldOption } from './entities/account.optional.field.options';
+import { IndexerService } from 'src/common/indexer/indexer.service';
+// import { AccountOptionalFieldOption } from './entities/account.optional.field.options';
 import { AccountAssets } from 'src/common/assets/entities/account.assets';
 import { CacheInfo } from 'src/utils/cache.info';
 import { UsernameService } from '../usernames/username.service';
@@ -35,7 +39,7 @@ import { ProviderService } from '../providers/provider.service';
 import { KeysService } from '../keys/keys.service';
 import { NodeStatusRaw } from '../nodes/entities/node.status';
 import { AccountKeyFilter } from './entities/account.key.filter';
-import { Provider } from '../providers/entities/provider';
+// import { Provider } from '../providers/entities/provider';
 
 @Injectable()
 export class AccountService {
@@ -63,74 +67,99 @@ export class AccountService {
     private readonly protocolService: ProtocolService,
     @Inject(forwardRef(() => ProviderService))
     private readonly providerService: ProviderService,
-    private readonly keysService: KeysService
-  ) { }
+    private readonly keysService: KeysService,
+  ) {}
 
   async getAccountsCount(filter: AccountQueryOptions): Promise<number> {
+    const True = true;
+    if (True) {
+      return 1;
+    }
+
     if (!filter.ownerAddress && filter.isSmartContract === undefined) {
       return await this.cachingService.getOrSet(
         CacheInfo.AccountsCount.key,
         async () => await this.indexerService.getAccountsCount(filter),
-        CacheInfo.AccountsCount.ttl
+        CacheInfo.AccountsCount.ttl,
       );
     }
 
     return await this.indexerService.getAccountsCount(filter);
   }
 
-  async getAccount(address: string, fields?: string[], withGuardianInfo?: boolean): Promise<AccountDetailed | null> {
-    if (!AddressUtils.isAddressValid(address)) {
-      return null;
-    }
+  async getAccount(
+    address: string,
+    // fields?: string[],
+    // withGuardianInfo?: boolean,
+  ): Promise<AccountDetailed | null> {
+    return await this.getAccountRaw(address);
 
-    const provider: Provider | undefined = await this.providerService.getProvider(address);
+    // if (!AddressUtils.isAddressValid(address)) {
+    //   return null;
+    // }
 
-    let txCount: number = 0;
-    let scrCount: number = 0;
+    // const provider: Provider | undefined =
+    //   await this.providerService.getProvider(address);
 
-    if (!fields || fields.length === 0 || fields.includes(AccountOptionalFieldOption.txCount)) {
-      txCount = await this.getAccountTxCount(address);
-    }
+    // let txCount: number = 0;
+    // let scrCount: number = 0;
 
-    if (!fields || fields.length === 0 || fields.includes(AccountOptionalFieldOption.scrCount)) {
-      scrCount = await this.getAccountScResults(address);
-    }
+    // if (
+    //   !fields ||
+    //   fields.length === 0 ||
+    //   fields.includes(AccountOptionalFieldOption.txCount)
+    // ) {
+    //   txCount = await this.getAccountTxCount(address);
+    // }
 
-    const [account, elasticSearchAccount] = await Promise.all([
-      this.getAccountRaw(address, txCount, scrCount),
-      this.indexerService.getAccount(address),
-    ]);
+    // if (
+    //   !fields ||
+    //   fields.length === 0 ||
+    //   fields.includes(AccountOptionalFieldOption.scrCount)
+    // ) {
+    //   scrCount = await this.getAccountScResults(address);
+    // }
 
-    if (account && withGuardianInfo === true) {
-      await this.applyGuardianInfo(account);
-    }
+    // const account = await this.getAccountRaw(address, txCount, scrCount);
+    // // const [account, elasticSearchAccount] = await Promise.all([
+    // //   this.getAccountRaw(address, txCount, scrCount),
+    // //   this.indexerService.getAccount(address),
+    // // ]);
 
-    if (account && elasticSearchAccount) {
-      account.timestamp = elasticSearchAccount.timestamp;
-    }
+    // if (account && withGuardianInfo === true) {
+    //   await this.applyGuardianInfo(account);
+    // }
 
-    if (account && provider && provider.owner) {
-      account.ownerAddress = provider.owner;
-    }
+    // // if (account && elasticSearchAccount) {
+    // //   account.timestamp = elasticSearchAccount.timestamp;
+    // // }
 
-    return account;
+    // if (account && provider && provider.owner) {
+    //   account.ownerAddress = provider.owner;
+    // }
+
+    // return account;
   }
 
   async applyGuardianInfo(account: AccountDetailed): Promise<void> {
     try {
-      const guardianResult = await this.gatewayService.getGuardianData(account.address);
+      const guardianResult = await this.gatewayService.getGuardianData(
+        account.address,
+      );
       const guardianData = guardianResult?.guardianData;
       if (guardianData) {
         const activeGuardian = guardianData.activeGuardian;
         if (activeGuardian) {
-          account.activeGuardianActivationEpoch = activeGuardian.activationEpoch;
+          account.activeGuardianActivationEpoch =
+            activeGuardian.activationEpoch;
           account.activeGuardianAddress = activeGuardian.address;
           account.activeGuardianServiceUid = activeGuardian.serviceUID;
         }
 
         const pendingGuardian = guardianData.pendingGuardian;
         if (pendingGuardian) {
-          account.pendingGuardianActivationEpoch = pendingGuardian.activationEpoch;
+          account.pendingGuardianActivationEpoch =
+            pendingGuardian.activationEpoch;
           account.pendingGuardianAddress = pendingGuardian.address;
           account.pendingGuardianServiceUid = pendingGuardian.serviceUID;
         }
@@ -138,22 +167,30 @@ export class AccountService {
         account.isGuarded = guardianData.guarded;
       }
     } catch (error) {
-      this.logger.error(`Error when getting guardian data for address '${account.address}'`);
+      this.logger.error(
+        `Error when getting guardian data for address '${account.address}'`,
+      );
       this.logger.error(error);
     }
   }
 
-  async getAccountVerification(address: string): Promise<AccountVerification | null> {
+  async getAccountVerification(
+    address: string,
+  ): Promise<AccountVerification | null> {
     if (!AddressUtils.isAddressValid(address)) {
       return null;
     }
 
-    const verificationResponse = await this.apiService.get(`${this.apiConfigService.getVerifierUrl()}/verifier/${address}`);
+    const verificationResponse = await this.apiService.get(
+      `${this.apiConfigService.getVerifierUrl()}/verifier/${address}`,
+    );
     return verificationResponse.data;
   }
 
   async getVerifiedAccounts(): Promise<string[]> {
-    const verificationResponse = await this.apiService.get(`${this.apiConfigService.getVerifierUrl()}/verifier`);
+    const verificationResponse = await this.apiService.get(
+      `${this.apiConfigService.getVerifierUrl()}/verifier`,
+    );
     return verificationResponse.data;
   }
 
@@ -165,16 +202,49 @@ export class AccountService {
     return await this.getAccountRaw(address);
   }
 
-  async getAccountRaw(address: string, txCount: number = 0, scrCount: number = 0): Promise<AccountDetailed | null> {
+  async getAccountRaw(
+    address: string,
+    txCount: number = 0,
+    scrCount: number = 0,
+  ): Promise<AccountDetailed | null> {
     const assets = await this.assetsService.getAllAccountAssets();
     try {
       const {
-        account: { nonce, balance, code, codeHash, rootHash, developerReward, ownerAddress, codeMetadata },
+        account: {
+          nonce,
+          balance,
+          code,
+          codeHash,
+          rootHash,
+          developerReward,
+          ownerAddress,
+          codeMetadata,
+        },
       } = await this.gatewayService.getAddressDetails(address);
 
       const shardCount = await this.protocolService.getShardCount();
-      const shard = AddressUtils.computeShard(AddressUtils.bech32Decode(address), shardCount);
-      let account = new AccountDetailed({ address, nonce, balance, code, codeHash, rootHash, txCount, scrCount, shard, developerReward, ownerAddress, scamInfo: undefined, assets: assets[address], ownerAssets: assets[ownerAddress], nftCollections: undefined, nfts: undefined });
+      const shard = AddressUtils.computeShard(
+        AddressUtils.bech32Decode(address),
+        shardCount,
+      );
+      let account = new AccountDetailed({
+        address,
+        nonce,
+        balance,
+        code,
+        codeHash,
+        rootHash,
+        txCount,
+        scrCount,
+        shard,
+        developerReward,
+        ownerAddress,
+        scamInfo: undefined,
+        assets: assets[address],
+        ownerAssets: assets[ownerAddress],
+        nftCollections: undefined,
+        nfts: undefined,
+      });
 
       const codeAttributes = AddressUtils.decodeCodeMetadata(codeMetadata);
       if (codeAttributes) {
@@ -192,14 +262,19 @@ export class AccountService {
           account.deployedAt = deployedAt;
         }
 
-        const isVerified = await this.getAccountIsVerified(address, account.codeHash);
+        const isVerified = await this.getAccountIsVerified(
+          address,
+          account.codeHash,
+        );
         if (isVerified) {
           account.isVerified = isVerified;
         }
       }
 
       if (!AddressUtils.isSmartContractAddress(address)) {
-        account.username = await this.usernameService.getUsernameForAddress(address) ?? undefined;
+        account.username =
+          (await this.usernameService.getUsernameForAddress(address)) ??
+          undefined;
         account.isPayableBySmartContract = undefined;
         account.isUpgradeable = undefined;
         account.isReadable = undefined;
@@ -210,7 +285,9 @@ export class AccountService {
       return account;
     } catch (error) {
       this.logger.error(error);
-      this.logger.error(`Error when getting account details for address '${address}'`);
+      this.logger.error(
+        `Error when getting account details for address '${address}'`,
+      );
       return null;
     }
   }
@@ -220,22 +297,31 @@ export class AccountService {
       return this.transactionService.getTransactionCountForAddress(address);
     }
 
-    return await this.transferService.getTransfersCount(new TransactionFilter({ address, type: TransactionType.Transaction }));
+    return await this.transferService.getTransfersCount(
+      new TransactionFilter({ address, type: TransactionType.Transaction }),
+    );
   }
 
   async getAccountScResults(address: string): Promise<number> {
     if (!this.apiConfigService.getIsIndexerV3FlagActive()) {
-      return await this.smartContractResultService.getAccountScResultsCount(address);
+      return await this.smartContractResultService.getAccountScResultsCount(
+        address,
+      );
     }
 
-    return await this.transferService.getTransfersCount(new TransactionFilter({ address, type: TransactionType.SmartContractResult }));
+    return await this.transferService.getTransfersCount(
+      new TransactionFilter({
+        address,
+        type: TransactionType.SmartContractResult,
+      }),
+    );
   }
 
   async getAccountDeployedAt(address: string): Promise<number | null> {
     return await this.cachingService.getOrSet(
       CacheInfo.AccountDeployedAt(address).key,
       async () => await this.getAccountDeployedAtRaw(address),
-      CacheInfo.AccountDeployedAt(address).ttl
+      CacheInfo.AccountDeployedAt(address).ttl,
     );
   }
 
@@ -275,18 +361,28 @@ export class AccountService {
     return scDeploy.deployTxHash;
   }
 
-  async getAccountIsVerified(address: string, codeHash: string): Promise<boolean | null> {
+  async getAccountIsVerified(
+    address: string,
+    codeHash: string,
+  ): Promise<boolean | null> {
     return await this.cachingService.getOrSet(
       CacheInfo.AccountIsVerified(address).key,
       async () => await this.getAccountIsVerifiedRaw(address, codeHash),
-      CacheInfo.AccountIsVerified(address).ttl
+      CacheInfo.AccountIsVerified(address).ttl,
     );
   }
 
-  async getAccountIsVerifiedRaw(address: string, codeHash: string): Promise<boolean | null> {
+  async getAccountIsVerifiedRaw(
+    address: string,
+    codeHash: string,
+  ): Promise<boolean | null> {
     try {
       // eslint-disable-next-line require-await
-      const { data } = await this.apiService.get(`${this.apiConfigService.getVerifierUrl()}/verifier/${address}/codehash`, undefined, async (error) => error.response?.status === HttpStatus.NOT_FOUND);
+      const { data } = await this.apiService.get(
+        `${this.apiConfigService.getVerifierUrl()}/verifier/${address}/codehash`,
+        undefined,
+        async (error) => error.response?.status === HttpStatus.NOT_FOUND,
+      );
 
       if (data.codeHash === Buffer.from(codeHash, 'base64').toString('hex')) {
         return true;
@@ -298,37 +394,56 @@ export class AccountService {
     return null;
   }
 
-  async getAccounts(queryPagination: QueryPagination, filter: AccountQueryOptions): Promise<Account[]> {
+  async getAccounts(
+    queryPagination: QueryPagination,
+    filter: AccountQueryOptions,
+  ): Promise<Account[]> {
     if (!filter.isSet()) {
       return await this.cachingService.getOrSet(
         CacheInfo.Accounts(queryPagination).key,
         async () => await this.getAccountsRaw(queryPagination, filter),
-        CacheInfo.Accounts(queryPagination).ttl
+        CacheInfo.Accounts(queryPagination).ttl,
       );
     }
 
     return await this.getAccountsRaw(queryPagination, filter);
   }
 
-  public async getAccountsForAddresses(addresses: Array<string>): Promise<Array<Account>> {
-    const assets: { [key: string]: AccountAssets; } = await this.assetsService.getAllAccountAssets();
+  public async getAccountsForAddresses(
+    addresses: Array<string>,
+  ): Promise<Array<Account>> {
+    const assets: { [key: string]: AccountAssets } =
+      await this.assetsService.getAllAccountAssets();
 
-    const accountsRaw = await this.indexerService.getAccountsForAddresses(addresses);
-    const accounts: Array<Account> = accountsRaw.map(account => ApiUtils.mergeObjects(new Account(), account));
+    const accountsRaw = await this.indexerService.getAccountsForAddresses(
+      addresses,
+    );
+    const accounts: Array<Account> = accountsRaw.map((account) =>
+      ApiUtils.mergeObjects(new Account(), account),
+    );
     const shardCount = await this.protocolService.getShardCount();
 
     for (const account of accounts) {
-      account.shard = AddressUtils.computeShard(AddressUtils.bech32Decode(account.address), shardCount);
+      account.shard = AddressUtils.computeShard(
+        AddressUtils.bech32Decode(account.address),
+        shardCount,
+      );
       account.assets = assets[account.address];
     }
 
     return accounts;
   }
 
-  async getAccountsRaw(queryPagination: QueryPagination, options: AccountQueryOptions): Promise<Account[]> {
-    const result = await this.indexerService.getAccounts(queryPagination, options);
+  async getAccountsRaw(
+    queryPagination: QueryPagination,
+    options: AccountQueryOptions,
+  ): Promise<Account[]> {
+    const result = await this.indexerService.getAccounts(
+      queryPagination,
+      options,
+    );
     const assets = await this.assetsService.getAllAccountAssets();
-    const accounts: Account[] = result.map(item => {
+    const accounts: Account[] = result.map((item) => {
       const account = ApiUtils.mergeObjects(new Account(), item);
       account.ownerAddress = item.currentOwner;
 
@@ -337,13 +452,21 @@ export class AccountService {
 
     const shardCount = await this.protocolService.getShardCount();
 
-    const verifiedAccounts = await this.cachingService.get<string[]>(CacheInfo.VerifiedAccounts.key);
+    const verifiedAccounts = await this.cachingService.get<string[]>(
+      CacheInfo.VerifiedAccounts.key,
+    );
 
     for (const account of accounts) {
-      account.shard = AddressUtils.computeShard(AddressUtils.bech32Decode(account.address), shardCount);
+      account.shard = AddressUtils.computeShard(
+        AddressUtils.bech32Decode(account.address),
+        shardCount,
+      );
       account.assets = assets[account.address];
 
-      if (options.withDeployInfo && AddressUtils.isSmartContractAddress(account.address)) {
+      if (
+        options.withDeployInfo &&
+        AddressUtils.isSmartContractAddress(account.address)
+      ) {
         const [deployedAt, deployTxHash] = await Promise.all([
           this.getAccountDeployedAt(account.address),
           this.getAccountDeployedTxHash(account.address),
@@ -368,8 +491,6 @@ export class AccountService {
       if (verifiedAccounts && verifiedAccounts.includes(account.address)) {
         account.isVerified = true;
       }
-
-
     }
 
     return accounts;
@@ -377,25 +498,27 @@ export class AccountService {
 
   async getDeferredAccount(address: string): Promise<AccountDeferred[]> {
     const publicKey = AddressUtils.bech32Decode(address);
-    const delegationContractAddress = this.apiConfigService.getDelegationContractAddress();
+    const delegationContractAddress =
+      this.apiConfigService.getDelegationContractAddress();
     if (!delegationContractAddress) {
       return [];
     }
 
-    const delegationContractShardId = AddressUtils.computeShard(AddressUtils.bech32Decode(delegationContractAddress), await this.protocolService.getShardCount());
+    const delegationContractShardId = AddressUtils.computeShard(
+      AddressUtils.bech32Decode(delegationContractAddress),
+      await this.protocolService.getShardCount(),
+    );
 
     const [
       encodedUserDeferredPaymentList,
       [encodedNumBlocksBeforeUnBond],
-      {
-        erd_nonce,
-      },
+      { erd_nonce },
     ] = await Promise.all([
       this.vmQueryService.vmQuery(
         delegationContractAddress,
         'getUserDeferredPaymentList',
         undefined,
-        [publicKey]
+        [publicKey],
       ),
       this.vmQueryService.vmQuery(
         delegationContractAddress,
@@ -404,29 +527,45 @@ export class AccountService {
       this.gatewayService.getNetworkStatus(`${delegationContractShardId}`),
     ]);
 
-    const numBlocksBeforeUnBond = parseInt(BinaryUtils.base64ToBigInt(encodedNumBlocksBeforeUnBond).toString());
+    const numBlocksBeforeUnBond = parseInt(
+      BinaryUtils.base64ToBigInt(encodedNumBlocksBeforeUnBond).toString(),
+    );
     const erdNonce = erd_nonce;
 
-    const data: AccountDeferred[] = encodedUserDeferredPaymentList.reduce((result: AccountDeferred[], _, index, array) => {
-      if (index % 2 === 0) {
-        const [encodedDeferredPayment, encodedUnstakedNonce] = array.slice(index, index + 2);
+    const data: AccountDeferred[] = encodedUserDeferredPaymentList.reduce(
+      (result: AccountDeferred[], _, index, array) => {
+        if (index % 2 === 0) {
+          const [encodedDeferredPayment, encodedUnstakedNonce] = array.slice(
+            index,
+            index + 2,
+          );
 
-        const deferredPayment = BinaryUtils.base64ToBigInt(encodedDeferredPayment).toString();
-        const unstakedNonce = parseInt(BinaryUtils.base64ToBigInt(encodedUnstakedNonce).toString());
-        const blocksLeft = Math.max(0, unstakedNonce + numBlocksBeforeUnBond - erdNonce);
-        const secondsLeft = blocksLeft * 6; // 6 seconds per block
+          const deferredPayment = BinaryUtils.base64ToBigInt(
+            encodedDeferredPayment,
+          ).toString();
+          const unstakedNonce = parseInt(
+            BinaryUtils.base64ToBigInt(encodedUnstakedNonce).toString(),
+          );
+          const blocksLeft = Math.max(
+            0,
+            unstakedNonce + numBlocksBeforeUnBond - erdNonce,
+          );
+          const secondsLeft = blocksLeft * 6; // 6 seconds per block
 
-        result.push({ deferredPayment, secondsLeft });
-      }
+          result.push({ deferredPayment, secondsLeft });
+        }
 
-      return result;
-    }, []);
+        return result;
+      },
+      [],
+    );
 
     return data;
   }
 
   private async getBlsKeysStatusForPublicKey(publicKey: string) {
-    const auctionContractAddress = this.apiConfigService.getAuctionContractAddress();
+    const auctionContractAddress =
+      this.apiConfigService.getAuctionContractAddress();
     if (!auctionContractAddress) {
       return undefined;
     }
@@ -440,7 +579,8 @@ export class AccountService {
   }
 
   private async getRewardAddressForNode(blsKey: string): Promise<string> {
-    const stakingContractAddress = this.apiConfigService.getStakingContractAddress();
+    const stakingContractAddress =
+      this.apiConfigService.getStakingContractAddress();
     if (!stakingContractAddress) {
       return '';
     }
@@ -452,18 +592,22 @@ export class AccountService {
       [blsKey],
     );
 
-    const rewardsPublicKey = Buffer.from(encodedRewardsPublicKey, 'base64').toString();
+    const rewardsPublicKey = Buffer.from(
+      encodedRewardsPublicKey,
+      'base64',
+    ).toString();
     return AddressUtils.bech32Encode(rewardsPublicKey);
   }
 
   private async getAllNodeStates(address: string) {
-    return await this.vmQueryService.vmQuery(
-      address,
-      'getAllNodeStates'
-    );
+    return await this.vmQueryService.vmQuery(address, 'getAllNodeStates');
   }
 
-  async getKeys(address: string, filter: AccountKeyFilter, pagination: QueryPagination): Promise<AccountKey[]> {
+  async getKeys(
+    address: string,
+    filter: AccountKeyFilter,
+    pagination: QueryPagination,
+  ): Promise<AccountKey[]> {
     const { from, size } = pagination;
     const publicKey = AddressUtils.bech32Decode(address);
     const isStakingProvider = await this.providerService.isProvider(address);
@@ -489,7 +633,9 @@ export class AccountService {
     let filteredNodes = [...notStakedNodes, ...nodes];
 
     if (filter && filter.status && filter.status.length > 0) {
-      filteredNodes = filteredNodes.filter(node => filter.status.includes(node.status as NodeStatusRaw));
+      filteredNodes = filteredNodes.filter((node) =>
+        filter.status.includes(node.status as NodeStatusRaw),
+      );
       filteredNodes = this.sortNodesByStatus(filteredNodes, filter.status);
     }
 
@@ -502,43 +648,56 @@ export class AccountService {
     }
 
     const checkIfCurrentItemIsStatus = (currentNodeData: string) =>
-      Object.values(NodeStatusRaw).includes(
-        currentNodeData as NodeStatusRaw
-      );
+      Object.values(NodeStatusRaw).includes(currentNodeData as NodeStatusRaw);
 
     return allNodeStates.reduce(
-      (totalNodes: string[], currentNodeState, nodeIndex, allNodesDataArray) => {
+      (
+        totalNodes: string[],
+        currentNodeState,
+        nodeIndex,
+        allNodesDataArray,
+      ) => {
         const decodedData = Buffer.from(currentNodeState, 'base64').toString();
-        const isNotStakedStatus =
-          decodedData === NodeStatusRaw.notStaked;
+        const isNotStakedStatus = decodedData === NodeStatusRaw.notStaked;
 
         const isCurrentItemTheStatus = checkIfCurrentItemIsStatus(decodedData);
 
         const nextStatusItemIndex = allNodesDataArray.findIndex(
           (nodeData, nodeDataIndex) =>
             nodeIndex < nodeDataIndex
-              ? checkIfCurrentItemIsStatus(Buffer.from(nodeData, 'base64').toString())
-              : false
+              ? checkIfCurrentItemIsStatus(
+                  Buffer.from(nodeData, 'base64').toString(),
+                )
+              : false,
         );
 
-        if (isCurrentItemTheStatus && nextStatusItemIndex < 0 && isNotStakedStatus) {
+        if (
+          isCurrentItemTheStatus &&
+          nextStatusItemIndex < 0 &&
+          isNotStakedStatus
+        ) {
           return [...totalNodes, ...allNodesDataArray.slice(nodeIndex + 1)];
         }
 
         if (isCurrentItemTheStatus && isNotStakedStatus) {
-          return [...totalNodes, ...allNodesDataArray.slice(nodeIndex + 1, nextStatusItemIndex)];
+          return [
+            ...totalNodes,
+            ...allNodesDataArray.slice(nodeIndex + 1, nextStatusItemIndex),
+          ];
         }
 
         return totalNodes;
       },
-      []
+      [],
     );
   }
 
   createNotStakedNodes(inactiveNodesBuffers: string[]): AccountKey[] {
     return inactiveNodesBuffers.map((inactiveNodeBuffer) => {
       const accountKey: AccountKey = new AccountKey();
-      accountKey.blsKey = BinaryUtils.padHex(Buffer.from(inactiveNodeBuffer, 'base64').toString('hex'));
+      accountKey.blsKey = BinaryUtils.padHex(
+        Buffer.from(inactiveNodeBuffer, 'base64').toString('hex'),
+      );
       accountKey.status = NodeStatusRaw.notStaked;
       accountKey.stake = '2500000000000000000000';
 
@@ -549,10 +708,15 @@ export class AccountService {
   createAccountKeys(blsKeysStatus: string[]): AccountKey[] {
     const nodes: AccountKey[] = [];
     for (let index = 0; index < blsKeysStatus.length; index += 2) {
-      const [encodedBlsKey, encodedStatus] = blsKeysStatus.slice(index, index + 2);
+      const [encodedBlsKey, encodedStatus] = blsKeysStatus.slice(
+        index,
+        index + 2,
+      );
 
       const accountKey: AccountKey = new AccountKey();
-      accountKey.blsKey = BinaryUtils.padHex(Buffer.from(encodedBlsKey, 'base64').toString('hex'));
+      accountKey.blsKey = BinaryUtils.padHex(
+        Buffer.from(encodedBlsKey, 'base64').toString('hex'),
+      );
       accountKey.status = Buffer.from(encodedStatus, 'base64').toString();
       accountKey.stake = '2500000000000000000000';
 
@@ -561,14 +725,20 @@ export class AccountService {
     return nodes;
   }
 
-  private sortNodesByStatus(nodes: AccountKey[], status: NodeStatusRaw[]): AccountKey[] {
-    return nodes.sorted(node => {
+  private sortNodesByStatus(
+    nodes: AccountKey[],
+    status: NodeStatusRaw[],
+  ): AccountKey[] {
+    return nodes.sorted((node) => {
       const statusIndex = status.indexOf(node.status as NodeStatusRaw);
       return statusIndex === -1 ? status.length : statusIndex;
     });
   }
 
-  async applyRewardAddressAndTopUpToNodes(nodes: AccountKey[], address: string) {
+  async applyRewardAddressAndTopUpToNodes(
+    nodes: AccountKey[],
+    address: string,
+  ) {
     if (nodes.length) {
       const rewardAddress = await this.getRewardAddressForNode(nodes[0].blsKey);
       const { topUp } = await this.stakeService.getAllStakesForNode(address);
@@ -582,7 +752,8 @@ export class AccountService {
   }
 
   async updateQueuedNodes(nodes: AccountKey[]) {
-    const stakingContractAddress = this.apiConfigService.getStakingContractAddress();
+    const stakingContractAddress =
+      this.apiConfigService.getStakingContractAddress();
     if (!stakingContractAddress) {
       return;
     }
@@ -607,16 +778,21 @@ export class AccountService {
               'getQueueIndex',
               this.apiConfigService.getAuctionContractAddress(),
               [blsKey],
-            )
+            ),
           ),
         );
 
         let index = 0;
         for (const queueIndexEncoded of queueIndexes) {
           if (queueIndexEncoded) {
-            const [found] = nodes.filter((x: AccountKey) => x.blsKey === queuedNodes[index]);
+            const [found] = nodes.filter(
+              (x: AccountKey) => x.blsKey === queuedNodes[index],
+            );
 
-            found.queueIndex = Buffer.from(queueIndexEncoded[0], 'base64').toString();
+            found.queueIndex = Buffer.from(
+              queueIndexEncoded[0],
+              'base64',
+            ).toString();
             found.queueSize = queueSize;
 
             index++;
@@ -626,16 +802,22 @@ export class AccountService {
     }
   }
 
-  async getAccountContracts(pagination: QueryPagination, address: string): Promise<DeployedContract[]> {
-    const accountDeployedContracts = await this.indexerService.getAccountContracts(pagination, address);
+  async getAccountContracts(
+    pagination: QueryPagination,
+    address: string,
+  ): Promise<DeployedContract[]> {
+    const accountDeployedContracts =
+      await this.indexerService.getAccountContracts(pagination, address);
     const assets = await this.assetsService.getAllAccountAssets();
 
-    const accounts: DeployedContract[] = accountDeployedContracts.map(contract => ({
-      address: contract.contract,
-      deployTxHash: contract.deployTxHash,
-      timestamp: contract.timestamp,
-      assets: assets[contract.contract],
-    }));
+    const accounts: DeployedContract[] = accountDeployedContracts.map(
+      (contract) => ({
+        address: contract.contract,
+        deployTxHash: contract.deployTxHash,
+        timestamp: contract.timestamp,
+        assets: assets[contract.contract],
+      }),
+    );
 
     return accounts;
   }
@@ -644,45 +826,92 @@ export class AccountService {
     return await this.indexerService.getAccountContractsCount(address);
   }
 
-  async getContractUpgrades(queryPagination: QueryPagination, address: string): Promise<ContractUpgrades[]> {
+  async getContractUpgrades(
+    queryPagination: QueryPagination,
+    address: string,
+  ): Promise<ContractUpgrades[]> {
     const details = await this.indexerService.getScDeploy(address);
     if (!details) {
       return [];
     }
 
-    const upgrades = details.upgrades.map(item => ApiUtils.mergeObjects(new ContractUpgrades(), {
-      address: item.upgrader,
-      txHash: item.upgradeTxHash,
-      codeHash: item.codeHash,
-      timestamp: item.timestamp,
-    })).sortedDescending(item => item.timestamp);
+    const upgrades = details.upgrades
+      .map((item) =>
+        ApiUtils.mergeObjects(new ContractUpgrades(), {
+          address: item.upgrader,
+          txHash: item.upgradeTxHash,
+          codeHash: item.codeHash,
+          timestamp: item.timestamp,
+        }),
+      )
+      .sortedDescending((item) => item.timestamp);
 
-    return upgrades.slice(queryPagination.from, queryPagination.from + queryPagination.size);
+    return upgrades.slice(
+      queryPagination.from,
+      queryPagination.from + queryPagination.size,
+    );
   }
 
-  async getAccountHistory(address: string, pagination: QueryPagination, filter: AccountHistoryFilter): Promise<AccountHistory[]> {
-    const elasticResult = await this.indexerService.getAccountHistory(address, pagination, filter);
-    return elasticResult.map(item => ApiUtils.mergeObjects(new AccountHistory(), item));
+  async getAccountHistory(
+    address: string,
+    pagination: QueryPagination,
+    filter: AccountHistoryFilter,
+  ): Promise<AccountHistory[]> {
+    const elasticResult = await this.indexerService.getAccountHistory(
+      address,
+      pagination,
+      filter,
+    );
+    return elasticResult.map((item) =>
+      ApiUtils.mergeObjects(new AccountHistory(), item),
+    );
   }
 
-  async getAccountHistoryCount(address: string, filter: AccountHistoryFilter): Promise<number> {
+  async getAccountHistoryCount(
+    address: string,
+    filter: AccountHistoryFilter,
+  ): Promise<number> {
     return await this.indexerService.getAccountHistoryCount(address, filter);
   }
 
-  async getAccountTokenHistoryCount(address: string, tokenIdentifier: string, filter: AccountHistoryFilter): Promise<number> {
-    return await this.indexerService.getAccountTokenHistoryCount(address, tokenIdentifier, filter);
+  async getAccountTokenHistoryCount(
+    address: string,
+    tokenIdentifier: string,
+    filter: AccountHistoryFilter,
+  ): Promise<number> {
+    return await this.indexerService.getAccountTokenHistoryCount(
+      address,
+      tokenIdentifier,
+      filter,
+    );
   }
 
-  async getAccountTokenHistory(address: string, tokenIdentifier: string, pagination: QueryPagination, filter: AccountHistoryFilter): Promise<AccountEsdtHistory[]> {
-    const elasticResult = await this.indexerService.getAccountTokenHistory(address, tokenIdentifier, pagination, filter);
-    return elasticResult.map(item => ApiUtils.mergeObjects(new AccountEsdtHistory(), item));
+  async getAccountTokenHistory(
+    address: string,
+    tokenIdentifier: string,
+    pagination: QueryPagination,
+    filter: AccountHistoryFilter,
+  ): Promise<AccountEsdtHistory[]> {
+    const elasticResult = await this.indexerService.getAccountTokenHistory(
+      address,
+      tokenIdentifier,
+      pagination,
+      filter,
+    );
+    return elasticResult.map((item) =>
+      ApiUtils.mergeObjects(new AccountEsdtHistory(), item),
+    );
   }
 
   private async applyNodeUnbondingPeriods(nodes: AccountKey[]): Promise<void> {
-    const leavingNodes = nodes.filter(node => node.status === 'unStaked');
-    await Promise.all(leavingNodes.map(async node => {
-      const keyUnbondPeriod = await this.keysService.getKeyUnbondPeriod(node.blsKey);
-      node.remainingUnBondPeriod = keyUnbondPeriod?.remainingUnBondPeriod;
-    }));
+    const leavingNodes = nodes.filter((node) => node.status === 'unStaked');
+    await Promise.all(
+      leavingNodes.map(async (node) => {
+        const keyUnbondPeriod = await this.keysService.getKeyUnbondPeriod(
+          node.blsKey,
+        );
+        node.remainingUnBondPeriod = keyUnbondPeriod?.remainingUnBondPeriod;
+      }),
+    );
   }
 }

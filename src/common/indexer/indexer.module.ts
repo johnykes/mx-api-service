@@ -1,11 +1,11 @@
-import { DynamicModule, Global, Module, Type } from "@nestjs/common";
-import configuration from "config/configuration";
-import { ElasticIndexerModule } from "./elastic/elastic.indexer.module";
-import { ElasticIndexerService } from "./elastic/elastic.indexer.service";
-import { IndexerInterface } from "./indexer.interface";
-import { IndexerService } from "./indexer.service";
-import { PostgresIndexerModule } from "./postgres/postgres.indexer.module";
-import { PostgresIndexerService } from "./postgres/postgres.indexer.service";
+import { DynamicModule, Global, Module, Type } from '@nestjs/common';
+import configuration from 'config/configuration';
+import { ElasticIndexerModule } from './elastic/elastic.indexer.module';
+import { ElasticIndexerService } from './elastic/elastic.indexer.service';
+import { IndexerInterface } from './indexer.interface';
+import { IndexerService } from './indexer.service';
+import { PostgresIndexerModule } from './postgres/postgres.indexer.module';
+import { PostgresIndexerService } from './postgres/postgres.indexer.service';
 
 @Global()
 @Module({})
@@ -22,9 +22,7 @@ export class IndexerModule {
 
     return {
       module: IndexerModule,
-      imports: [
-        indexerModule,
-      ],
+      imports: [indexerModule],
       providers: [
         {
           provide: 'IndexerInterface',
