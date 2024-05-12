@@ -93,12 +93,13 @@ urls:
   elastic:
     - 'https://index.multiversx.com'
   gateway:
-    - 'https://gateway.multiversx.com'
+    - 'http://localhost:8079'
+    # - 'https://gateway.multiversx.com'
   verifier: 'https://play-api.multiversx.com'
   redis: '127.0.0.1'
   rabbitmq: '' #'amqp://127.0.0.1:5672'
-  providers: 'https://delegation-api.multiversx.com/providers'
-  delegation: 'https://delegation-api.multiversx.com'
+  providers: 'http://localhost:3005/providers'
+  delegation: 'http://localhost:3005'
   media: 'https://media.elrond.com'
   nftThumbnails: 'https://media.elrond.com/nfts/thumbnail'
   tmp: '/tmp'
